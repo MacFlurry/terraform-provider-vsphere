@@ -1097,6 +1097,9 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	name := d.Get("name").(string)
 	timeout := d.Get("clone.0.timeout").(int)
 	var vm *object.VirtualMachine
+	if IsLibraryItem(meta, d.Get("clone.0.template_uuid")){
+		resourceVSphereVirtualMachineCreateCloneFromLibrary(d, meta)
+	}
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		vm, err = resourceVSphereVirtualMachineCreateCloneWithSDRS(d, meta, srcVM, fo, name, cloneSpec, timeout)
 	} else {
