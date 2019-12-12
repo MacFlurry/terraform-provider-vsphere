@@ -27,7 +27,9 @@ func dataSourceVSphereContentLibrary() *schema.Resource {
 }
 
 func dataSourceVSphereContentLibraryRead(d *schema.ResourceData, meta interface{}) error {
-
+	m := vcenter.NewManager(meta.(*VSphereClient).restClient)
+	clm := library.NewManager(meta.(*VSphereClient).restClient)
+	ctx := context.TODO()
 	find := library.Find{
 		Name: "VirtuallyGhetto",
 	}
@@ -40,13 +42,27 @@ func dataSourceVSphereContentLibraryRead(d *schema.ResourceData, meta interface{
 	ci, err := clm.FindLibraryItems(ctx, fi)
 	item, _ := clm.GetLibraryItem(ctx, ci[0])
 	log.Printf("[DEBUG] BILLLLLLLLLLLLLLLLLLLLLLLLLL--------------------- %v:%v", item, err)
-	vcenter.Deploy
-m := vcenter.NewManager(meta.(*VSphereClient).restClient)
-vcenter.Deploy{
-	DeploymentSpec: vcenter.DeploymentSpec{},
-	Target:         vcenter.Target{},
-}
-clm.GetItem
+	dp := vcenter.Deploy{
+		DeploymentSpec: vcenter.DeploymentSpec{
+			Name:                "brtest",
+			Annotation:          "annotation1",
+			AcceptAllEULA:       true,
+			NetworkMappings:     nil,
+			StorageMappings:     nil,
+			StorageProvisioning: "",
+			StorageProfileID:    "",
+			Locale:              "",
+			Flags:               nil,
+			AdditionalParams:    nil,
+			DefaultDatastoreID:  "",
+		},
+		Target: vcenter.Target{
+			ResourcePoolID: "123",
+			HostID:         "123",
+			FolderID:       "123",
+		},
+	}
+	m.DeployLibraryItem(ctx, item.Name, dp)
 
 	return nil
 }
@@ -59,7 +75,7 @@ func IsLibraryItem(meta interface{}, id string) bool {
 	clm := resourceVSphereContentLibraryClient(meta)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
-	if item, _ := clm.GetLibraryItem(ctx, id); item != nil{
+	if item, _ := clm.GetLibraryItem(ctx, id); item != nil {
 		return true
 	}
 	return false
