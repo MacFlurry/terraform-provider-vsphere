@@ -3,7 +3,6 @@ package vsphere
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"log"
 )
 
 func resourceVSphereContentLibrary() *schema.Resource {
@@ -56,7 +55,6 @@ func resourceVSphereContentLibraryCreate(d *schema.ResourceData, meta interface{
 	vc := meta.(*VSphereClient).vimClient
 	rc := meta.(*VSphereClient).restClient
 	backings, err := contentlibrary.ExpandStorageBackings(vc, d)
-	log.Print("BILLLLLLLLLLLLLLLLLLLLLLLLLLL - %v", backings)
 	if err != nil {
 		return err
 	}

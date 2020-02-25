@@ -3,7 +3,6 @@ package vsphere
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
 func resourceVSphereContentLibraryItem() *schema.Resource {
@@ -30,31 +29,34 @@ func resourceVSphereContentLibraryItem() *schema.Resource {
 				ForceNew:    true,
 				Description: "Optional description of the content library item.",
 			},
-			"source_id": {
-				Type:        schema.TypeString,
+			"file_url": {
+				Type:        schema.TypeSet,
 				Required:    true,
 				ForceNew:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 				Description: "ID of source VM of content library item.",
+			},
+			"type": {
+				Type: schema.TypeString,
+				Default: "ovf",
+				Optional: true,
+				Description: "Type of content library item.",
 			},
 		},
 	}
 }
 
 func resourceVSphereContentLibraryItemCreate(d *schema.ResourceData, meta interface{}) error {
-	vc := meta.(*VSphereClient).vimClient
 	rc := meta.(*VSphereClient).restClient
-
-	source, err := virtualmachine.FromUUID(vc, d.Get("source_id").(string))
-	if err != nil {
-		return err
-	}
 
 	lib, err := contentlibrary.FromID(rc, d.Get("library_id").(string))
 	if err != nil {
 		return err
 	}
 
-	id, err := contentlibrary.CreateLibraryItem(rc, lib, d.Get("name").(string), d.Get("description").(string), source)
+	files := d.Get("file_url").(*schema.Set)
+
+	id, err := contentlibrary.CreateLibraryItem(rc, lib, d.Get("name").(string), d.Get("description").(string), d.Get("type").(string), files.List())
 	if err != nil {
 		return err
 	}

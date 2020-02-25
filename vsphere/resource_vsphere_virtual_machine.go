@@ -1098,7 +1098,15 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	timeout := d.Get("clone.0.timeout").(int)
 	var vm *object.VirtualMachine
 	//if IsLibraryItem(meta, d.Get("clone.0.template_uuid")) {
-	//resourceVSphereVirtualMachineCreateCloneFromLibrary(d, meta)
+	host := &object.HostSystem{}
+	if host := d.Get("host_system_id").(string); host != "" {
+		host, err = hostsystem.FromID(client, host)
+	}
+	nm := d.Get("network_map")
+	sm := d.Get("storage_map")
+
+	virtualmachine.DeployDest(name, "annotation", pool, host, fo, nm, sm)
+	resourceVSphereVirtualMachineCreateCloneFromLibrary(d, meta)
 	//}
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		vm, err = resourceVSphereVirtualMachineCreateCloneWithSDRS(d, meta, srcVM, fo, name, cloneSpec, timeout)

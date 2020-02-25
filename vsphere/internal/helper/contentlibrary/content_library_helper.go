@@ -6,10 +6,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vapi/library"
 	"github.com/vmware/govmomi/vapi/rest"
+	"github.com/vmware/govmomi/vapi/vcenter"
 	"log"
+	"path/filepath"
+	"time"
 )
 
 func FromName(c *rest.Client, name string) (*library.Library, error) {
@@ -89,17 +91,30 @@ func ItemFromID(c *rest.Client, id string) (*library.Item, error) {
 	return clm.GetLibraryItem(ctx, id)
 }
 
-func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc string, source *object.VirtualMachine) (string, error) {
+func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc string, t string, files []interface{}) (string, error) {
 	clm := library.NewManager(c)
 	ctx := context.TODO()
 	item := library.Item{
 		Description: desc,
 		LibraryID:   l.ID,
 		Name:        name,
-		SourceID:    source.Reference().String(),
-		Type:        "ovf",
+		Type:        t,
 	}
-	return clm.CreateLibraryItem(ctx, item)
+	id, err := clm.CreateLibraryItem(ctx, item)
+	if err != nil {
+		return "", err
+	}
+	session, err := clm.CreateLibraryItemUpdateSession(ctx, library.Session{LibraryItemID: id})
+	if err != nil {
+		return "", nil
+	}
+	for _, f := range files {
+		clm.AddLibraryItemFileFromURI(ctx, session, filepath.Base(f.(string)), f.(string))
+	}
+	clm.WaitOnLibraryItemUpdateSession(ctx, session, time.Second*10, func() { log.Printf("Waiting...") })
+	clm.CompleteLibraryItemUpdateSession(ctx, session)
+
+	return id, nil
 }
 
 func UpdateLibraryItem(c *rest.Client, l *library.Library, oi *library.Item, name string, desc string) (string, error) {
@@ -143,4 +158,22 @@ func FlattenStorageBackings(sb []library.StorageBackings) []string {
 		}
 	}
 	return sbl
+}
+
+func NetworkInterfaceToMapping(nbi []interface{}) []vcenter.NetworkMapping {
+	nbs := []vcenter.NetworkMapping{}
+	for k, v := range(nbi) {
+		nbs = append(nbs, vcenter.NetworkMapping{
+		})
+	}
+}
+
+func StorageInterfaceToMapping(sbi []interface{}) []vcenter.StorageMapping {
+	sbs := []vcenter.StorageMapping{}
+	for k, v := range(sbi.(map[string]string)) {
+		sbs = append(sbs, vcenter.StorageMapping{
+			Key: k,
+			Value: v,
+		})
+	}
 }
